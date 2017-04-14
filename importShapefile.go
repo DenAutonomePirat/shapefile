@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/jonas-p/go-shp"
-
+	"github.com/kellydunn/golang-geo"
 	"log"
 	"os"
 )
@@ -101,12 +101,37 @@ func main() {
 				segmentno++
 			}
 
-			//Add holes
-			line = fmt.Sprintf("#Holes\n0\n")
+			line = fmt.Sprintf("#Holes\n75\n")
 			_, err = polyWriter.WriteString(line)
 			if err != nil {
 				panic(err)
 			}
+			//Find a point inside the hole
+			for i := int32(1); i < p.NumParts; i++ {
+				var found bool = false
+				for j := int32(0); found == false; j++ {
+					temp := p.Points[p.Parts[i]+j]
+					pA := geo.NewPoint(temp.X, temp.Y)
+					temp = p.Points[p.Parts[i]+j+1]
+					pB := geo.NewPoint(temp.X, temp.Y)
+					temp = p.Points[p.Parts[i]+j+1]
+					pC := geo.NewPoint(temp.X, temp.Y)
+					diff := pB.BearingTo(pA) - pB.BearingTo(pC)
+					if diff > 40 && diff < 120 {
+						found = true
+						pH := pB.PointAtDistanceAndBearing(0.001, diff)
+
+						line = fmt.Sprintln(i, pH.Lat(), pH.Lng())
+						_, err = polyWriter.WriteString(line)
+						if err != nil {
+							panic(err)
+						}
+					}
+				}
+
+			}
+
+			//Add holes
 
 			polyWriter.Flush()
 
