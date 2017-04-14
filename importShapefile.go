@@ -30,7 +30,7 @@ func main() {
 			fmt.Printf("No of vertexes in Polygon: %v\n", p.NumPoints)
 			fmt.Printf("No of parts in Polygon: %v\n", p.NumParts)
 
-			//Create node file
+			//Create .node file
 			node, err := os.Create("triangle/temp.node")
 			if err != nil {
 				panic(err)
@@ -39,28 +39,8 @@ func main() {
 
 			nodeWriter := bufio.NewWriter(node)
 
-			poly, err := os.Create("triangle/temp.poly")
-			if err != nil {
-				panic(err)
-			}
-			defer poly.Close()
-
-			polyWriter := bufio.NewWriter(poly)
-
 			line := fmt.Sprintf("#Gennerated by importShapefile.go\n%v 2 0 0\n", p.NumPoints)
 			_, err = nodeWriter.WriteString(line)
-			if err != nil {
-				panic(err)
-			}
-
-			line = fmt.Sprintf("#Gennerated by importShapefile.go\n0 2 0 0\n")
-			_, err = polyWriter.WriteString(line)
-			if err != nil {
-				panic(err)
-			}
-
-			line = fmt.Sprintf("%v 0\n", p.NumParts)
-			_, err = polyWriter.WriteString(line)
 			if err != nil {
 				panic(err)
 			}
@@ -72,33 +52,65 @@ func main() {
 				if err != nil {
 					panic(err)
 				}
-
 			}
-			segmentNo := 0
+			nodeWriter.Flush()
+
+			//Create .poly file
+			poly, err := os.Create("triangle/temp.poly")
+			if err != nil {
+				panic(err)
+			}
+			defer poly.Close()
+
+			polyWriter := bufio.NewWriter(poly)
+
+			line = fmt.Sprintf("#Gennerated by importShapefile.go\n0 2 0 0\n")
+			_, err = polyWriter.WriteString(line)
+			if err != nil {
+				panic(err)
+			}
+
+			line = fmt.Sprintf("%v 0\n", p.NumPoints-p.NumParts)
+			_, err = polyWriter.WriteString(line)
+			if err != nil {
+				panic(err)
+			}
+			segmentno := 0
+
 			for i := int32(0); i < p.NumParts; i++ {
-				partStart := p.Parts[i]
-				partsEnd := partStart
+				endOfPart := int32(0)
 				if i >= p.NumParts-1 {
-					partsEnd = p.NumPoints
+					endOfPart = p.NumPoints
 				} else {
-					partsEnd = p.Parts[i+1]
+					endOfPart = p.Parts[i+1]
 				}
-				for j := partStart; j < partsEnd; j++ {
-					end := j
-					if j == partsEnd-1 {
-						j = partStart
-					}
-					line = fmt.Sprintf("%v %v %v\n", segmentNo, j, end)
+				for j := p.Parts[i]; j < endOfPart-2; j++ {
+					line = fmt.Sprintln(segmentno, j, j+1)
 					_, err = polyWriter.WriteString(line)
 					if err != nil {
 						panic(err)
 					}
-					segmentNo++
+					segmentno++
+
 				}
+				line = fmt.Sprintln(segmentno, endOfPart-2, p.Parts[i])
+				_, err = polyWriter.WriteString(line)
+				if err != nil {
+					panic(err)
+				}
+				segmentno++
 			}
 
-			nodeWriter.Flush()
+			//Add holes
+			line = fmt.Sprintf("#Holes\n0\n")
+			_, err = polyWriter.WriteString(line)
+			if err != nil {
+				panic(err)
+			}
+
 			polyWriter.Flush()
+
+			fmt.Println(p.Points[p.Parts[1]].Y)
 
 		default:
 			fmt.Printf("unexpected type %T\n", p)
