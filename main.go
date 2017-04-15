@@ -4,9 +4,9 @@ import (
 	"container/heap"
 	"encoding/json"
 	"fmt"
-	gj "github.com/kpawlik/geojson"
-
 	"github.com/denautonomepirat/golang-geo"
+	"github.com/denautonomepirat/shapefile/triangle"
+	gj "github.com/kpawlik/geojson"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"log"
@@ -68,6 +68,8 @@ type Naighbor struct {
 }
 
 func main() {
+	points := triangle.ImportShapefile("limfjorden/Limfjorden.shp")
+	fmt.Println(len(points))
 	go run()
 	select {}
 
@@ -99,7 +101,7 @@ func run() {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	//Uncomment to update neighbours on mongo
+	//Uncomment to update neighbors on mongo
 	//for i := 0; i < count; i++ {
 	//	MapStore.UpdateNeighbours(i)
 	//}
